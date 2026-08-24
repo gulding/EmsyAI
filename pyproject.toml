@@ -1,0 +1,32 @@
+[project]
+name = "emsyai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "gulding", email = "emirislam1234@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "datasets>=5.0.1",
+    "numpy>=2.5.2",
+    "requests>=2.34.2",
+    "torch>=2.5.1",
+    "tqdm>=4.70.0",
+]
+
+[project.scripts]
+emsyai = "emsyai:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+
