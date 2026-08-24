@@ -27,7 +27,7 @@ def get_instruct_dataloader(tokenizer: BPETokenizer, batch_size: int = 4, seq_le
         # [MODEL]
         # def function...<|eos|>
         text = f"[USER]\n{item['instruction']}\n[MODEL]\n{item['output']}<|eos|>"
-        tokens = tokenizer.encode(text)
+        tokens = tokenizer.encode(text, allowed_special={"<|eos|>"})
         tokenized_examples.append(tokens)
         
     # Infinite generator yielding batches
@@ -70,8 +70,8 @@ def finetune():
     print(f"Starting LoRA Fine-tuning on {device}...")
     
     # 1. Load Base Model
-    checkpoint_path = "checkpoints/model_step_5000.pt"
-    tokenizer_path = "dataset/tokenizer.json"
+    checkpoint_path = "checkpoints_v2/model_step_5000.pt"
+    tokenizer_path = "dataset/tokenizer_v2.json"
     
     print("Loading Base Model...")
     model, tokenizer = load_model(checkpoint_path, tokenizer_path, device)
@@ -124,8 +124,8 @@ def finetune():
         
         # Save checkpoints periodically
         if step % 1000 == 0 or step == args.steps:
-            os.makedirs("checkpoints/lora", exist_ok=True)
-            path = f"checkpoints/lora/instruct_lora_step_{step}.pt"
+            os.makedirs("checkpoints_v2/lora", exist_ok=True)
+            path = f"checkpoints_v2/lora/instruct_lora_step_{step}.pt"
             lora_state_dict = {k: v for k, v in model.state_dict().items() if "lora_" in k}
             torch.save(lora_state_dict, path)
             print(f"\nSaved checkpoint to {path}")

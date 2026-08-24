@@ -15,13 +15,13 @@ def load_model(checkpoint_path: str, tokenizer_path: str, device: str):
     
     # We initialize the model with the exact same hyperparams used in training
     model = EmsyAIModel(
-        vocab_size=8000, 
-        dim=512, 
-        n_layers=8, 
-        n_heads=8, 
+        vocab_size=16000, 
+        dim=768, 
+        n_layers=12, 
+        n_heads=12, 
         n_kv_heads=4, 
-        hidden_dim=1408,
-        max_seq_len=512
+        hidden_dim=2048,
+        max_seq_len=1024
     )
     
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -32,8 +32,8 @@ def load_model(checkpoint_path: str, tokenizer_path: str, device: str):
 
 def main():
     parser = argparse.ArgumentParser(description="EmsyAI Interactive Chat")
-    parser.add_argument("--checkpoint", type=str, default="checkpoints/model_step_5000.pt", help="Path to model checkpoint")
-    parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer.json", help="Path to tokenizer")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints_v2/model_step_5000.pt", help="Path to model checkpoint")
+    parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json", help="Path to tokenizer")
     parser.add_argument("--temperature", type=float, default=0.8, help="Generation temperature")
     parser.add_argument("--top_k", type=int, default=40, help="Top-K sampling")
     parser.add_argument("--top_p", type=float, default=0.9, help="Top-P (nucleus) sampling")

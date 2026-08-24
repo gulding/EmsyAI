@@ -9,9 +9,9 @@ from emsyai.model.lora import apply_lora
 
 def main():
     parser = argparse.ArgumentParser(description="EmsyAI Instruct Chat (LoRA)")
-    parser.add_argument("--base_checkpoint", type=str, default="checkpoints/model_step_5000.pt")
-    parser.add_argument("--lora_checkpoint", type=str, default="checkpoints/lora/instruct_lora.pt")
-    parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer.json")
+    parser.add_argument("--base_checkpoint", type=str, default="checkpoints_v2/model_step_5000.pt")
+    parser.add_argument("--lora_checkpoint", type=str, default="checkpoints_v2/lora/instruct_lora.pt")
+    parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json")
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_k", type=int, default=40)
     parser.add_argument("--top_p", type=float, default=0.9)

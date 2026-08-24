@@ -55,7 +55,7 @@ def prepare_dataset(text_path: str, tokenizer_path: str, out_path: str):
     
     for i in range(0, len(text), chunk_size):
         chunk = text[i:i + chunk_size]
-        ids = tokenizer.encode(chunk)
+        ids = tokenizer.encode(chunk, allowed_special={"<|eos|>"})
         tokens.extend(ids)
         print(f"Tokenized {min(i + chunk_size, len(text))} / {len(text)} bytes")
         
