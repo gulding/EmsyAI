@@ -53,13 +53,13 @@ def export_to_gguf(merged_state, tokenizer_path, out_file):
     writer = GGUFWriter(out_file, "llama")
     
     # Write Metadata
-    writer.add_name("EmsyAI-28M-Instruct")
-    writer.add_context_length(512)
-    writer.add_embedding_length(512)
-    writer.add_block_count(8)
-    writer.add_feed_forward_length(1408)
+    writer.add_name("EmsyAI-120M-Instruct")
+    writer.add_context_length(1024)
+    writer.add_embedding_length(768)
+    writer.add_block_count(12)
+    writer.add_feed_forward_length(2048)
     writer.add_rope_dimension_count(64)
-    writer.add_head_count(8)
+    writer.add_head_count(12)
     writer.add_head_count_kv(4)
     writer.add_layer_norm_rms_eps(1e-5)
     
@@ -69,21 +69,15 @@ def export_to_gguf(merged_state, tokenizer_path, out_file):
         
     vocab = tok_data["vocab"] if "vocab" in tok_data else None
     
-    # Since our BPE tokenizer format is custom, we'll extract the vocab from merges and bytes
-    # To build GGUF vocab, we need a list of strings of size 8000
-    # For a true implementation, we need the exact vocab array.
-    # We will build a dummy vocab array just to satisfy llama.cpp if needed, 
-    # but ideally we extract the exact strings.
-    # Let's extract tokens by generating IDs 0 to 8000 and decoding them!
     from emsyai.tokenizer import BPETokenizer
-    tok = BPETokenizer(vocab_size=8000)
+    tok = BPETokenizer(vocab_size=16000)
     tok.load(tokenizer_path)
     
     tokens = []
     scores = []
     token_types = []
     
-    for i in range(8000):
+    for i in range(16000):
         # We need byte representation or string representation
         # Our decode returns a string (with replacement for invalid bytes)
         try:
@@ -114,7 +108,7 @@ def export_to_gguf(merged_state, tokenizer_path, out_file):
         "output.weight": "output.weight"
     }
     
-    for i in range(8):
+    for i in range(12):
         tensor_map[f"layers.{i}.attention.wq.weight"] = f"blk.{i}.attn_q.weight"
         tensor_map[f"layers.{i}.attention.wk.weight"] = f"blk.{i}.attn_k.weight"
         tensor_map[f"layers.{i}.attention.wv.weight"] = f"blk.{i}.attn_v.weight"
@@ -152,10 +146,10 @@ def export_to_gguf(merged_state, tokenizer_path, out_file):
     print(f"Success! GGUF model saved to {out_file}")
 
 def main():
-    base = "checkpoints/model_step_5000.pt"
-    lora = "checkpoints/lora/instruct_lora_step_10000.pt"
-    tokenizer = "dataset/tokenizer.json"
-    out = "emsyai-f32.gguf"
+    base = "checkpoints_v2/model_step_5000.pt"
+    lora = "checkpoints_v2/lora/instruct_lora_step_10000.pt"
+    tokenizer = "dataset/tokenizer_v2.json"
+    out = "emsyai-120m-instruct-f32.gguf"
     
     if not os.path.exists(base) or not os.path.exists(lora):
         print("Missing checkpoint files!")
