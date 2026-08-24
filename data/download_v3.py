@@ -48,22 +48,70 @@ def get_synthetic_edits(num_samples=25000):
         yield text
         count += 1
 
+import re
+
+def load_benchmark_blacklist():
+    print("Loading benchmark blacklists (HumanEval & MBPP) for decontamination...")
+    blacklist_ngrams = set()
+    
+    # Load OpenAI HumanEval
+    he = load_dataset("openai_humaneval", split="test")
+    for row in he:
+        text = row['prompt'] + " " + row['test']
+        words = re.findall(r'\w+', text.lower())
+        for i in range(len(words) - 9):
+            ngram = " ".join(words[i:i+10])
+            blacklist_ngrams.add(ngram)
+            
+    # Load MBPP
+    mbpp = load_dataset("mbpp", split="test")
+    for row in mbpp:
+        text = row['text'] + " " + "\n".join(row['test_list'])
+        words = re.findall(r'\w+', text.lower())
+        for i in range(len(words) - 9):
+            ngram = " ".join(words[i:i+10])
+            blacklist_ngrams.add(ngram)
+            
+    print(f"Loaded {len(blacklist_ngrams)} unique 10-grams into blacklist.")
+    return blacklist_ngrams
+
+def is_contaminated(text, blacklist):
+    words = re.findall(r'\w+', text.lower())
+    if len(words) < 10:
+        return False
+        
+    # Check 10-grams against blacklist
+    for i in range(len(words) - 9):
+        ngram = " ".join(words[i:i+10])
+        if ngram in blacklist:
+            return True
+    return False
+
 def build_dataset():
     out_bin = "dataset/train_v3.bin"
     out_txt = "dataset/smollm_corpus_v3.txt"
     
-    print("Gathering texts...")
-    texts = []
+    blacklist = load_benchmark_blacklist()
     
-    for text in tqdm(get_cosmopedia(75000), total=75000, desc="Cosmopedia"):
-        texts.append(text)
-        
-    for text in tqdm(get_python_codes(75000), total=75000, desc="Python Codes"):
-        texts.append(text)
-        
-    for text in tqdm(get_synthetic_edits(25000), total=18800, desc="Synthetic Edits"):
-        texts.append(text)
-        
+    print("Gathering and Decontaminating texts...")
+    texts = []
+    purged_count = 0
+    
+    # Helper to process and filter
+    def add_if_clean(text_iter, total, desc):
+        nonlocal purged_count
+        for text in tqdm(text_iter, total=total, desc=desc):
+            if is_contaminated(text, blacklist):
+                purged_count += 1
+            else:
+                texts.append(text)
+                
+    add_if_clean(get_cosmopedia(75000), 75000, "Cosmopedia")
+    add_if_clean(get_python_codes(75000), 75000, "Python Codes")
+    add_if_clean(get_synthetic_edits(25000), 18800, "Synthetic Edits")
+    
+    print(f"Decontamination Complete! Kept: {len(texts)} docs | Purged: {purged_count} contaminated docs.")
+    
     print(f"Writing {len(texts)} documents to text file...")
     with open(out_txt, "w", encoding="utf-8") as f_txt:
         for t in texts:
