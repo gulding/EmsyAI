@@ -1,87 +1,112 @@
 # EmsyAI 🧠
 
-EmsyAI is a complete, educational, decoder-only Transformer Language Model built entirely from scratch in pure PyTorch. The goal of this project is to demystify how modern Large Language Models (like Llama 3, Qwen, and GPT) work under the hood. 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![PyTorch: 2.5.1+cu121](https://img.shields.io/badge/PyTorch-CUDA%2012.1-red.svg)](https://pytorch.org/)
+[![Hugging Face: EmsyAI](https://img.shields.io/badge/HuggingFace-gulding%2FEmsyAI-orange.svg)](https://huggingface.co/gulding/EmsyAI)
 
-This is not a wrapper around the `transformers` library. **Every single component was built from scratch:**
-- Hand-rolled Byte-Pair Encoding (BPE) Tokenizer
-- Rotary Positional Embeddings (RoPE)
-- Grouped Query Attention (GQA)
-- SwiGLU Feed-Forward Networks
-- RMSNorm Pre-Normalization
-- KV Caching Autoregressive Inference
-- Low-Rank Adaptation (LoRA) Fine-tuning
+EmsyAI is a complete, educational, decoder-only Transformer Language Model built entirely from mathematical first principles in pure PyTorch. The goal of this project is to demystify how modern LLMs (like Llama 3, Qwen 2.5, and DeepSeek) operate under the hood.
 
-## 🏗️ Architecture
+This is **not** a wrapper around the `transformers` library. **Every single component was built from scratch:**
 
-The architecture heavily mirrors modern LLM designs (specifically Llama 3):
-- **Parameters**: ~89 Million (120M class with weight tying)
-- **Layers**: 12
-- **Hidden Dimension**: 768
-- **Attention Heads**: 12 Query, 4 KV (GQA)
-- **FFN Hidden Dimension**: 2048
-- **Context Length**: 1024
-- **Vocab Size**: 16000
-- **Attention Kernel**: PyTorch Native FlashAttention-2 (SDPA)
+- ✂️ **Hand-rolled Byte-Pair Encoding (BPE)** Tokenizer with native special token isolation (`<|eos|>`, `<|bos|>`, `<|pad|>`)
+- 🔄 **Rotary Positional Embeddings (RoPE)** via complex polar tensor rotations
+- ⚡ **Grouped Query Attention (GQA)** with fused FlashAttention-2 (PyTorch SDPA)
+- 🚪 **SwiGLU Feed-Forward Networks** (3-matrix gated layout: $W_1, W_2, W_3$)
+- ⚖️ **RMSNorm Pre-Normalization** with numerical float32 upcasting
+- 💾 **Step-by-Step KV Caching** for high-throughput autoregressive inference
+- 🎯 **Multi-Layer Low-Rank Adaptation (LoRA)** fine-tuning across all 7 linear projections
 
-## 🚀 Getting Started
+---
 
-This project uses `uv` for lightning-fast dependency management.
+## 🏗️ Architecture Specifications
 
-```bash
-# Install dependencies
-uv sync
-```
+| Specification | EmsyAI-v2 (Current) | EmsyAI-v3 Titan (Active) |
+|---|---|---|
+| **Parameters** | 88.1 Million (Tied) | 178.5 Million (Tied) |
+| **Layers ($L$)** | 12 | 16 |
+| **Hidden Dimension ($d_{\text{model}}$)** | 768 | 896 |
+| **Attention Heads ($H_q / H_{kv}$)** | 12 Query / 4 KV (GQA 3:1) | 14 Query / 2 KV (GQA 7:1) |
+| **FFN Dimension** | 2,048 (SwiGLU) | 2,560 (SwiGLU) |
+| **Context Window ($T$)** | 1,024 tokens | 4,096 tokens |
+| **Vocabulary Size** | 16,000 (Hybrid BPE) | 16,000 (Hybrid BPE) |
+| **Attention Backend** | FlashAttention-2 (`F.scaled_dot_product_attention`) | FlashAttention-2 |
 
-### ⚡ Run Natively with Ollama
-Because EmsyAI follows the standard Llama architecture, we exported it to GGUF format! You can run it instantly on your local machine using Ollama without installing any Python dependencies:
+---
+
+## 🚀 Quickstart: Run in 5 Seconds via Ollama
+
+You can run EmsyAI natively without installing PyTorch or GPU drivers:
 
 ```bash
 ollama run hf.co/gulding/EmsyAI
 ```
 
-### 1. Tokenizer Training
-The pure-Python BPE tokenizer is trained on the CPython source code.
+## 💻 Developer & Training Pipeline
+
+This project uses [uv](https://github.com/astral-sh/uv) for fast dependency management.
+
 ```bash
-# Download CPython source code
+# 1. Clone the repository
+git clone https://github.com/gulding/EmsyAI.git
+cd EmsyAI
+
+# 2. Install dependencies (PyTorch with CUDA 12.1)
+uv sync
+```
+
+### 1. Data Engine & Tokenizer
+```bash
+# Stream 100k hybrid samples (Cosmopedia v2 + Python-25k)
 uv run python data/download_v2.py
 
-# Train the BPE Tokenizer (creates dataset/tokenizer.json)
+# Or stream the 150M Token Titan Dataset with Decontamination
+uv run python data/download_v3.py
+
+# Train the 16k BPE Tokenizer
 uv run python scripts/train_tokenizer.py
 ```
 
-### 2. Base Model Pretraining
-The training loop features AdamW, Cosine Learning Rate decay with linear warmup, Gradient Accumulation, and `bfloat16` Mixed Precision.
-
+### 2. Pretraining
 ```bash
+# Pretrain EmsyAI-v2 (88M Model)
 uv run python -m emsyai.training.train
+
+# Pretrain EmsyAI-v3 Titan (180M Model @ 4,096 Context)
+uv run python -m emsyai.training.train_v3
 ```
 
-### 3. LoRA Instruction Fine-Tuning
-A custom LoRA implementation targets all linear layers (Q, K, V, O, w1, w2, w3) to fine-tune the base model on a subset of CodeAlpaca.
-
+### 3. LoRA Instruction Fine-Tuning (SFT)
 ```bash
-# Download 20k CodeAlpaca instruction pairs
+# Download 20k CodeAlpaca instruction dataset
 uv run python -m emsyai.training.download_alpaca
 
-# Train the LoRA adapters
+# Train LoRA adapters across all linear layers
 uv run python -m emsyai.training.finetune --steps 10000
 ```
 
-### 4. Exporting to GGUF
-We include a custom `export_gguf.py` script that merges the base weights with the LoRA matrices and exports the full PyTorch model directly to a `.gguf` file compatible with `llama.cpp`.
-
+### 4. Interactive Chat REPL
 ```bash
-uv run python scripts/export_gguf.py
+uv run python -m emsyai.chat_instruct \
+  --base_checkpoint checkpoints_v2/model_step_5000.pt \
+  --lora_checkpoint checkpoints_v2/lora/instruct_lora_step_10000.pt \
+  --tokenizer dataset/tokenizer_v2.json
 ```
 
-### 5. Chat Interface
-You can interact with the instruction-tuned model via a command-line REPL. It implements KV caching, top-k/top-p sampling, and repetition penalties.
+## 📝 Prompt Template
 
-```bash
-uv run python -m emsyai.chat_instruct --lora_checkpoint checkpoints_v2/lora/instruct_lora_step_10000.pt
+When querying the instruction model, use the exact role tags:
+
+```text
+[USER]
+Write a Python function to check if a number is prime.
+[MODEL]
 ```
 
-## 🛠️ Verification & Benchmarking
-- Run `scripts/verify_model.py` to cryptographically prove that the Causal Mask prevents future token leakage, and that the KV Cache accurately matches standard autoregressive generation.
-- Run `uv run python -m emsyai.benchmark` to test the base model's syntax generation capabilities using Python's AST parser.
+## 🔬 Mathematical Verification Suite
 
+Run our verification suite to mathematically validate attention causality and KV-cache consistency:
+
+```bash
+uv run python scripts/verify_model.py
+```
