@@ -55,7 +55,7 @@ def load_benchmark_blacklist():
     blacklist_ngrams = set()
     
     # Load OpenAI HumanEval
-    he = load_dataset("openai_humaneval", split="test")
+    he = load_dataset("openai/openai_humaneval", split="test")
     for row in he:
         text = row['prompt'] + " " + row['test']
         words = re.findall(r'\w+', text.lower())
@@ -64,7 +64,7 @@ def load_benchmark_blacklist():
             blacklist_ngrams.add(ngram)
             
     # Load MBPP
-    mbpp = load_dataset("mbpp", split="test")
+    mbpp = load_dataset("google-research-datasets/mbpp", split="test")
     for row in mbpp:
         text = row['text'] + " " + "\n".join(row['test_list'])
         words = re.findall(r'\w+', text.lower())
