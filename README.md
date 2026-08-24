@@ -69,6 +69,3 @@ uv run python -m emsyai.chat_instruct --lora_checkpoint checkpoints/lora/instruc
 ## 🛠️ Verification & Benchmarking
 - Run `verify_model.py` to cryptographically prove that the Causal Mask prevents future token leakage, and that the KV Cache accurately matches standard autoregressive generation.
 - Run `uv run python -m emsyai.benchmark` to test the base model's syntax generation capabilities using Python's AST parser.
-
-## 🎓 Educational Value
-If you are learning ML engineering, start by reading the code in `src/emsyai/model/`. The code is heavily commented to explain the math and the "why" behind each architectural decision.
