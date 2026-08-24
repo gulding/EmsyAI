@@ -12,48 +12,87 @@ tags:
 
 # EmsyAI 🧠
 
-EmsyAI is a **28 Million Parameter Decoder-only Transformer** built entirely from scratch in pure PyTorch for educational purposes. It is not a wrapper around the `transformers` library, but a fully hand-rolled implementation of a modern LLM architecture (heavily inspired by Llama 3).
+EmsyAI is a complete, educational, decoder-only Transformer Language Model built entirely from scratch in pure PyTorch. The goal of this project is to demystify how modern Large Language Models (like Llama 3, Qwen, and GPT) work under the hood. 
 
-## 🏗️ Model Architecture
+This is not a wrapper around the `transformers` library. **Every single component was built from scratch:**
+- Hand-rolled Byte-Pair Encoding (BPE) Tokenizer
+- Rotary Positional Embeddings (RoPE)
+- Grouped Query Attention (GQA)
+- SwiGLU Feed-Forward Networks
+- RMSNorm Pre-Normalization
+- KV Caching Autoregressive Inference
+- Low-Rank Adaptation (LoRA) Fine-tuning
 
-- **Parameters**: ~28 Million
-- **Layers**: 8
-- **Hidden Dimension**: 512
-- **Attention Heads**: 8 Query, 4 KV (Grouped Query Attention)
-- **FFN Hidden Dimension**: 1408 (SwiGLU)
-- **Context Length**: 512
-- **Vocab Size**: 8000
-- **Normalization**: Pre-RMSNorm
-- **Positional Encoding**: Rotary Positional Embeddings (RoPE)
+## 🏗️ Architecture
 
-## 🔧 Training Details
+The architecture heavily mirrors modern LLM designs (specifically Llama 3):
+- **Parameters**: ~89 Million (120M class with weight tying)
+- **Layers**: 12
+- **Hidden Dimension**: 768
+- **Attention Heads**: 12 Query, 4 KV (GQA)
+- **FFN Hidden Dimension**: 2048
+- **Context Length**: 1024
+- **Vocab Size**: 16000
+- **Attention Kernel**: PyTorch Native FlashAttention-2 (SDPA)
 
-### Phase 1: Base Pretraining
-The base model was pretrained from scratch on ~40MB of Python source code (from the CPython repository) using a hand-rolled Byte-Pair Encoding (BPE) tokenizer. 
-- **Optimizer**: AdamW with `bfloat16` mixed precision
-- **Learning Rate**: Cosine decay with linear warmup
-- **Final Perplexity**: ~10.77
+## 🚀 Getting Started
 
-### Phase 2: Instruction Fine-Tuning (LoRA)
-The model was fine-tuned to follow instructions using a custom, from-scratch Low-Rank Adaptation (LoRA) implementation. 
-- **Dataset**: `CodeAlpaca-20k`
-- **LoRA Targets**: All linear layers (Q, K, V, O, w1, w2, w3)
-- **Trainable Parameters**: 598,016 (2.11%)
-- **Final Loss**: ~1.92
+This project uses `uv` for lightning-fast dependency management.
 
-## ⚡ Run Natively with Ollama
+```bash
+# Install dependencies
+uv sync
+```
+
+### ⚡ Run Natively with Ollama
 Because EmsyAI follows the standard Llama architecture, we exported it to GGUF format! You can run it instantly on your local machine using Ollama without installing any Python dependencies:
 
 ```bash
 ollama run hf.co/gulding/EmsyAI
 ```
 
-## 💻 Python Usage
+### 1. Tokenizer Training
+The pure-Python BPE tokenizer is trained on the CPython source code.
+```bash
+# Download CPython source code
+uv run python data/download_v2.py
 
-To use this model in PyTorch, you will need the custom inference code from the GitHub repository:
-[https://github.com/gulding/EmsyAI](https://github.com/gulding/EmsyAI)
+# Train the BPE Tokenizer (creates dataset/tokenizer.json)
+uv run python scripts/train_tokenizer.py
+```
 
-Because the tokenizer and architecture are custom-built, this model is **not directly compatible** with the `transformers` `AutoModel` API. It is designed to be run using the `chat_instruct.py` script provided in the GitHub repo.
+### 2. Base Model Pretraining
+The training loop features AdamW, Cosine Learning Rate decay with linear warmup, Gradient Accumulation, and `bfloat16` Mixed Precision.
 
-## 🎓 Educational Value
-This project demonstrates how to build every layer of a modern Large Language Model from mathematical first principles, including the data pipeline, the Transformer core, LoRA adapters, and autoregressive KV-caching generation.
+```bash
+uv run python -m emsyai.training.train
+```
+
+### 3. LoRA Instruction Fine-Tuning
+A custom LoRA implementation targets all linear layers (Q, K, V, O, w1, w2, w3) to fine-tune the base model on a subset of CodeAlpaca.
+
+```bash
+# Download 20k CodeAlpaca instruction pairs
+uv run python -m emsyai.training.download_alpaca
+
+# Train the LoRA adapters
+uv run python -m emsyai.training.finetune --steps 10000
+```
+
+### 4. Exporting to GGUF
+We include a custom `export_gguf.py` script that merges the base weights with the LoRA matrices and exports the full PyTorch model directly to a `.gguf` file compatible with `llama.cpp`.
+
+```bash
+uv run python scripts/export_gguf.py
+```
+
+### 5. Chat Interface
+You can interact with the instruction-tuned model via a command-line REPL. It implements KV caching, top-k/top-p sampling, and repetition penalties.
+
+```bash
+uv run python -m emsyai.chat_instruct --lora_checkpoint checkpoints_v2/lora/instruct_lora_step_10000.pt
+```
+
+## 🛠️ Verification & Benchmarking
+- Run `scripts/verify_model.py` to cryptographically prove that the Causal Mask prevents future token leakage, and that the KV Cache accurately matches standard autoregressive generation.
+- Run `uv run python -m emsyai.benchmark` to test the base model's syntax generation capabilities using Python's AST parser.
