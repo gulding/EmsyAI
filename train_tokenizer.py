@@ -4,24 +4,27 @@ from emsyai.tokenizer import BPETokenizer
 def main():
     dataset_path = "dataset/train.txt"
     model_path = "dataset/tokenizer.json"
-    
-    if not os.path.exists(dataset_path):
-        print(f"Error: {dataset_path} not found. Please run data/download.py first.")
+    # Phase 6: Use the new hybrid dataset
+    data_path = "dataset/smollm_corpus_v2.txt"
+    if not os.path.exists(data_path):
+        print(f"Error: {data_path} not found. Run data/download_v2.py first.")
         return
         
-    print("Loading dataset...")
-    # Load first 10MB of the dataset to keep training time reasonable for pure Python
-    # 10MB is about 10 million characters, enough to learn a solid 8000 vocab for Python
-    with open(dataset_path, "r", encoding="utf-8") as f:
-        text = f.read(10 * 1024 * 1024) 
+    print(f"Reading {data_path}...")
+    with open(data_path, "r", encoding="utf-8") as f:
+        text = f.read()
         
-    print(f"Loaded {len(text)} characters for tokenizer training.")
+    # Scale to 16,000 vocab size as per the Phase 6 Roadmap
+    vocab_size = 16000
+    print(f"Text length: {len(text)} characters")
+    print(f"Training BPE tokenizer (vocab size {vocab_size})...")
     
-    tokenizer = BPETokenizer(vocab_size=8000)
+    tokenizer = BPETokenizer(vocab_size=vocab_size)
     tokenizer.train(text)
     
-    print(f"Saving tokenizer to {model_path}...")
-    tokenizer.save(model_path)
+    out_path = "dataset/tokenizer.json"
+    tokenizer.save(out_path)
+    print(f"Tokenizer saved to {out_path}")
     
     # Test it
     test_text = "def hello_world():\n    print('Hello, world!')"

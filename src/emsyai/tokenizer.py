@@ -96,42 +96,71 @@ class BPETokenizer:
                 
         print("Training complete.")
 
-    def encode(self, text: str) -> List[int]:
-        """Convert string to token IDs"""
-        words = TOKEN_PATTERN.findall(text)
-        ids = []
-        for word in words:
-            # Start with byte IDs
-            split = list(word.encode('utf-8'))
+    def encode(self, text: str, allowed_special: set = None) -> List[int]:
+        """Convert string to token IDs, natively handling special tokens."""
+        if allowed_special is None:
+            allowed_special = set()
             
-            # Iteratively apply merges
-            while len(split) >= 2:
-                # Find the pair in split that has the lowest merge index (was learned earliest)
-                min_pair = None
-                min_id = float('inf')
+        ids = []
+        # Find all special tokens in the text if allowed
+        # To avoid complex regex, we can just find them and split the string
+        
+        # Simple approach for a limited set of special tokens:
+        # If the string contains a special token we allow, we should parse it.
+        # But a more robust way is to just do a string replace or split.
+        
+        # For our simple tokenizer, let's assume if it exactly matches a special token string, it is one.
+        # But since they can be embedded in text, let's build a regex for the allowed special tokens.
+        if allowed_special:
+            escaped_special = [re.escape(s) for s in allowed_special if s in self.special_tokens]
+            if escaped_special:
+                special_pattern = re.compile("(" + "|".join(escaped_special) + ")")
+                chunks = special_pattern.split(text)
+            else:
+                chunks = [text]
+        else:
+            chunks = [text]
+            
+        for chunk in chunks:
+            if chunk in allowed_special and chunk in self.special_tokens:
+                ids.append(self.special_tokens[chunk])
+                continue
                 
-                for i in range(len(split) - 1):
-                    pair = (split[i], split[i+1])
-                    if pair in self.merges and self.merges[pair] < min_id:
-                        min_id = self.merges[pair]
-                        min_pair = pair
-                        
-                if min_pair is None:
-                    break # No more merges possible
+            if not chunk:
+                continue
+                
+            words = TOKEN_PATTERN.findall(chunk)
+            for word in words:
+                # Start with byte IDs
+                split = list(word.encode('utf-8'))
+                
+                # Iteratively apply merges
+                while len(split) >= 2:
+                    min_pair = None
+                    min_id = float('inf')
                     
-                # Apply the specific merge sequentially across the word
-                new_split = []
-                i = 0
-                while i < len(split):
-                    if i < len(split) - 1 and (split[i], split[i+1]) == min_pair:
-                        new_split.append(min_id)
-                        i += 2
-                    else:
-                        new_split.append(split[i])
-                        i += 1
-                split = new_split
-                
-            ids.extend(split)
+                    for i in range(len(split) - 1):
+                        pair = (split[i], split[i+1])
+                        if pair in self.merges and self.merges[pair] < min_id:
+                            min_id = self.merges[pair]
+                            min_pair = pair
+                            
+                    if min_pair is None:
+                        break # No more merges possible
+                        
+                    # Apply the specific merge sequentially across the word
+                    new_split = []
+                    i = 0
+                    while i < len(split):
+                        if i < len(split) - 1 and (split[i], split[i+1]) == min_pair:
+                            new_split.append(min_id)
+                            i += 2
+                        else:
+                            new_split.append(split[i])
+                            i += 1
+                    split = new_split
+                    
+                ids.extend(split)
         return ids
 
     def decode(self, ids: List[int]) -> str:

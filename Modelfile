@@ -1,0 +1,7 @@
+FROM ./emsyai-f32.gguf
+TEMPLATE """[USER]
+{{ .Prompt }}
+[MODEL]
+"""
+PARAMETER stop "<|eos|>"
+PARAMETER temperature 0.2
