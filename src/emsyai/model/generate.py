@@ -67,6 +67,11 @@ def generate(
     start_pos = tokens.shape[1]
     
     next_token = _sample(next_token_logits, temperature, top_k, top_p)
+    
+    # Guard against generating EOS as the very first token
+    if next_token.item() == tokenizer.special_tokens["<|eos|>"]:
+        return prompt
+        
     generated_ids.append(next_token.item())
     seen_tokens.append(next_token.item())
     

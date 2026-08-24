@@ -78,13 +78,15 @@ def export_to_gguf(merged_state, tokenizer_path, out_file):
     token_types = []
     
     for i in range(16000):
-        # We need byte representation or string representation
-        # Our decode returns a string (with replacement for invalid bytes)
-        try:
-            s = tok.decode([i])
-            tokens.append(s.encode('utf-8'))
-        except:
+        if i < 256:
+            tokens.append(bytes([i]))
+        elif i in tok.inverse_special_tokens:
+            tokens.append(tok.inverse_special_tokens[i].encode('utf-8'))
+        elif i in tok.vocab:
+            tokens.append(tok.vocab[i])  # Already bytes
+        else:
             tokens.append(f"<dummy_{i}>".encode('utf-8'))
+            
         scores.append(0.0)
         
         if i in tok.inverse_special_tokens:

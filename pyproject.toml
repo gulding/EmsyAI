@@ -1,7 +1,7 @@
 [project]
 name = "emsyai"
 version = "0.1.0"
-description = "Add your description here"
+description = "A from-scratch decoder-only LLM built with pure PyTorch"
 readme = "README.md"
 authors = [
     { name = "gulding", email = "emirislam1234@gmail.com" }

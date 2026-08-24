@@ -56,7 +56,8 @@ class GroupedQueryAttention(nn.Module):
         # Why scale by sqrt(d_k)? The dot product of two vectors of size d_k has a variance of d_k.
         # This large variance pushes the softmax into regions with extremely small gradients (vanishing gradients).
         # Scaling by 1/sqrt(d_k) keeps the variance at 1, ensuring stable softmax outputs.
-        self.scale = 1.0 / math.sqrt(self.head_dim)
+        # We explicitly skip creating self.scale since F.scaled_dot_product_attention 
+        # calculates the scaling factor natively and optimally in C++.
 
     def forward(
         self,
