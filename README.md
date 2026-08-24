@@ -14,13 +14,14 @@ This is not a wrapper around the `transformers` library. **Every single componen
 ## 🏗️ Architecture
 
 The architecture heavily mirrors modern LLM designs (specifically Llama 3):
-- **Parameters**: ~28 Million
-- **Layers**: 8
-- **Hidden Dimension**: 512
-- **Attention Heads**: 8 Query, 4 KV (GQA)
-- **FFN Hidden Dimension**: 1408
-- **Context Length**: 512
-- **Vocab Size**: 8000
+- **Parameters**: ~89 Million (120M class with weight tying)
+- **Layers**: 12
+- **Hidden Dimension**: 768
+- **Attention Heads**: 12 Query, 4 KV (GQA)
+- **FFN Hidden Dimension**: 2048
+- **Context Length**: 1024
+- **Vocab Size**: 16000
+- **Attention Kernel**: PyTorch Native FlashAttention-2 (SDPA)
 
 ## 🚀 Getting Started
 
@@ -42,7 +43,7 @@ ollama run hf.co/gulding/EmsyAI
 The pure-Python BPE tokenizer is trained on the CPython source code.
 ```bash
 # Download CPython source code
-uv run python data/download.py
+uv run python data/download_v2.py
 
 # Train the BPE Tokenizer (creates dataset/tokenizer.json)
 uv run python scripts/train_tokenizer.py
@@ -77,7 +78,7 @@ uv run python scripts/export_gguf.py
 You can interact with the instruction-tuned model via a command-line REPL. It implements KV caching, top-k/top-p sampling, and repetition penalties.
 
 ```bash
-uv run python -m emsyai.chat_instruct --lora_checkpoint checkpoints/lora/instruct_lora_step_10000.pt
+uv run python -m emsyai.chat_instruct --lora_checkpoint checkpoints_v2/lora/instruct_lora_step_10000.pt
 ```
 
 ## 🛠️ Verification & Benchmarking
