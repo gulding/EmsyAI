@@ -49,9 +49,16 @@ The model was fine-tuned to follow instructions using a custom, from-scratch Low
 - **Trainable Parameters**: 598,016 (2.11%)
 - **Final Loss**: ~1.92
 
-## 💻 Usage
+## ⚡ Run Natively with Ollama
+Because EmsyAI follows the standard Llama architecture, we exported it to GGUF format! You can run it instantly on your local machine using Ollama without installing any Python dependencies:
 
-To use this model, you will need the custom inference code from the GitHub repository:
+```bash
+ollama run hf.co/gulding/EmsyAI
+```
+
+## 💻 Python Usage
+
+To use this model in PyTorch, you will need the custom inference code from the GitHub repository:
 [https://github.com/gulding/EmsyAI](https://github.com/gulding/EmsyAI)
 
 Because the tokenizer and architecture are custom-built, this model is **not directly compatible** with the `transformers` `AutoModel` API. It is designed to be run using the `chat_instruct.py` script provided in the GitHub repo.

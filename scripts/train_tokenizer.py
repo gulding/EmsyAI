@@ -10,9 +10,11 @@ def main():
         print(f"Error: {data_path} not found. Run data/download_v2.py first.")
         return
         
-    print(f"Reading {data_path}...")
+    print(f"Reading {data_path} (Reading first 15MB for fast tokenizer training)...")
     with open(data_path, "r", encoding="utf-8") as f:
-        text = f.read()
+        # We only read the first 15MB to keep pure Python BPE training fast!
+        # This is more than enough text to learn 16,000 high-quality vocabulary merges.
+        text = f.read(15 * 1024 * 1024)
         
     # Scale to 16,000 vocab size as per the Phase 6 Roadmap
     vocab_size = 16000
@@ -22,7 +24,7 @@ def main():
     tokenizer = BPETokenizer(vocab_size=vocab_size)
     tokenizer.train(text)
     
-    out_path = "dataset/tokenizer.json"
+    out_path = "dataset/tokenizer_v2.json"
     tokenizer.save(out_path)
     print(f"Tokenizer saved to {out_path}")
     

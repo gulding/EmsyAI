@@ -39,20 +39,20 @@ def get_lr(step: int, max_steps: int, warmup_steps: int, max_lr: float, min_lr: 
 def main():
     # --- Configuration ---
     # File paths
-    text_path = "dataset/train.txt"
-    tokenizer_path = "dataset/tokenizer.json"
-    bin_path = "dataset/train.bin"
-    checkpoint_dir = "checkpoints"
+    text_path = "dataset/smollm_corpus_v2.txt"
+    tokenizer_path = "dataset/tokenizer_v2.json"
+    bin_path = "dataset/train_v2.bin"
+    checkpoint_dir = "checkpoints_v2"
     os.makedirs(checkpoint_dir, exist_ok=True)
     
-    # Model Hyperparameters
-    vocab_size = 8000
-    dim = 512
-    n_layers = 8
-    n_heads = 8
+    # Model Hyperparameters (EmsyAI-120M)
+    vocab_size = 16000
+    dim = 768
+    n_layers = 12
+    n_heads = 12
     n_kv_heads = 4
-    hidden_dim = 1408
-    seq_len = 512
+    hidden_dim = 2048
+    seq_len = 1024
     
     # Training Hyperparameters
     micro_batch_size = 4

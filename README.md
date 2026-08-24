@@ -45,7 +45,7 @@ The pure-Python BPE tokenizer is trained on the CPython source code.
 uv run python data/download.py
 
 # Train the BPE Tokenizer (creates dataset/tokenizer.json)
-uv run python train_tokenizer.py
+uv run python scripts/train_tokenizer.py
 ```
 
 ### 2. Base Model Pretraining
@@ -70,7 +70,7 @@ uv run python -m emsyai.training.finetune --steps 10000
 We include a custom `export_gguf.py` script that merges the base weights with the LoRA matrices and exports the full PyTorch model directly to a `.gguf` file compatible with `llama.cpp`.
 
 ```bash
-uv run python export_gguf.py
+uv run python scripts/export_gguf.py
 ```
 
 ### 5. Chat Interface
@@ -81,5 +81,5 @@ uv run python -m emsyai.chat_instruct --lora_checkpoint checkpoints/lora/instruc
 ```
 
 ## 🛠️ Verification & Benchmarking
-- Run `verify_model.py` to cryptographically prove that the Causal Mask prevents future token leakage, and that the KV Cache accurately matches standard autoregressive generation.
+- Run `scripts/verify_model.py` to cryptographically prove that the Causal Mask prevents future token leakage, and that the KV Cache accurately matches standard autoregressive generation.
 - Run `uv run python -m emsyai.benchmark` to test the base model's syntax generation capabilities using Python's AST parser.

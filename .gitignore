@@ -9,5 +9,11 @@ wheels/
 # Virtual environments
 .venv
 
+# Data and Checkpoints
 dataset/
 checkpoints/
+checkpoints_v2/
+
+# Large binary files
+*.gguf
+*.bin

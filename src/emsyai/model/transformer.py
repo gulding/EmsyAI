@@ -58,13 +58,13 @@ class EmsyAIModel(nn.Module):
     """
     def __init__(
         self, 
-        vocab_size: int = 8000, 
-        dim: int = 512, 
-        n_layers: int = 8, 
-        n_heads: int = 8, 
+        vocab_size: int = 16000, 
+        dim: int = 768, 
+        n_layers: int = 12, 
+        n_heads: int = 12, 
         n_kv_heads: int = 4, 
-        hidden_dim: int = 1408,
-        max_seq_len: int = 512
+        hidden_dim: int = 2048,
+        max_seq_len: int = 1024
     ):
         super().__init__()
         self.vocab_size = vocab_size

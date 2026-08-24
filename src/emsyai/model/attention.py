@@ -99,20 +99,19 @@ class GroupedQueryAttention(nn.Module):
         keys = keys.transpose(1, 2)
         values = values.transpose(1, 2)
         
-        # 6. Scaled Dot-Product Attention: Softmax(Q * K^T / sqrt(d_k)) * V
-        # Q @ K^T gives attention scores: (B, NumHeads, SeqLen, CacheLen)
-        scores = torch.matmul(xq, keys.transpose(2, 3)) * self.scale
-        
-        # Apply causal mask (so tokens can't look into the future)
-        if mask is not None:
-            scores = scores + mask
+        # 6. Scaled Dot-Product Attention using PyTorch's native C++ SDPA kernel (FlashAttention-2)
+        # This replaces manual Q*K^T and Softmax, saving memory and computing insanely fast.
+        # It automatically dispatches to FlashAttention-2 or xFormers if available!
+        is_causal = False
+        if mask is None and SeqLen > 1:
+            is_causal = True
             
-        # Softmax converts scores into probabilities
-        probs = F.softmax(scores, dim=-1)
-        
-        # Multiply probabilities by Values to get the context vectors
-        # Shape: (B, NumHeads, SeqLen, HeadDim)
-        output = torch.matmul(probs, values)
+        output = F.scaled_dot_product_attention(
+            xq, keys, values,
+            attn_mask=mask if not is_causal else None,
+            dropout_p=0.0,
+            is_causal=is_causal
+        )
         
         # 7. Reshape and final linear projection
         # Transpose back to (B, SeqLen, NumHeads, HeadDim) and flatten heads
