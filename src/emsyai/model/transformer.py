@@ -59,12 +59,13 @@ class EmsyAIModel(nn.Module):
     def __init__(
         self, 
         vocab_size: int = 16000, 
-        dim: int = 768, 
-        n_layers: int = 12, 
-        n_heads: int = 12, 
-        n_kv_heads: int = 4, 
-        hidden_dim: int = 2048,
-        max_seq_len: int = 1024
+        dim: int = 896, 
+        n_layers: int = 16, 
+        n_heads: int = 14, 
+        n_kv_heads: int = 2, 
+        hidden_dim: int = 2560,
+        max_seq_len: int = 4096,
+        rope_theta: float = 50000.0
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -97,7 +98,7 @@ class EmsyAIModel(nn.Module):
         self.output.weight = self.tok_embeddings.weight
         
         # Precompute RoPE frequencies
-        self.freqs_cis = precompute_freqs_cis(dim // n_heads, max_seq_len * 2)
+        self.freqs_cis = precompute_freqs_cis(dim // n_heads, max_seq_len * 2, theta=rope_theta)
 
     def forward(
         self, 
