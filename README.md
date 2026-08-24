@@ -31,6 +31,13 @@ This project uses `uv` for lightning-fast dependency management.
 uv sync
 ```
 
+### ⚡ Run Natively with Ollama
+Because EmsyAI follows the standard Llama architecture, we exported it to GGUF format! You can run it instantly on your local machine using Ollama without installing any Python dependencies:
+
+```bash
+ollama run hf.co/gulding/EmsyAI
+```
+
 ### 1. Tokenizer Training
 The pure-Python BPE tokenizer is trained on the CPython source code.
 ```bash
@@ -59,7 +66,14 @@ uv run python -m emsyai.training.download_alpaca
 uv run python -m emsyai.training.finetune --steps 10000
 ```
 
-### 4. Chat Interface
+### 4. Exporting to GGUF
+We include a custom `export_gguf.py` script that merges the base weights with the LoRA matrices and exports the full PyTorch model directly to a `.gguf` file compatible with `llama.cpp`.
+
+```bash
+uv run python export_gguf.py
+```
+
+### 5. Chat Interface
 You can interact with the instruction-tuned model via a command-line REPL. It implements KV caching, top-k/top-p sampling, and repetition penalties.
 
 ```bash
