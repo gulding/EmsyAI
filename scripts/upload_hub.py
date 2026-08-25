@@ -10,32 +10,15 @@ def upload_all(api: HfApi, repo_id: str):
     print("All assets uploaded successfully!")
 
 def upload_readme(api: HfApi, repo_id: str):
-    print("Uploading Model Card (README.md)...")
+    print("Uploading Model Card (HF_README_V3.md)...")
     try:
-        with open("README.md", "r", encoding="utf-8") as f:
-            content = f.read()
-            
-        yaml_header = """---
-base_model: gulding/EmsyAI
-library_name: emsyai
-license: mit
-tags:
-- emsyai
-- pytorch
-- custom-architecture
----
-"""
-        with open("HF_README_TEMP.md", "w", encoding="utf-8") as f:
-            f.write(yaml_header + content)
-            
         api.upload_file(
-            path_or_fileobj="HF_README_TEMP.md",
+            path_or_fileobj="HF_README_V3.md",
             path_in_repo="README.md",
             repo_id=repo_id,
             repo_type="model",
-            commit_message="Update Model Card"
+            commit_message="Update Model Card for Hugging Face audience"
         )
-        os.remove("HF_README_TEMP.md")
         print("Model Card uploaded successfully.")
     except Exception as e:
         print(f"Failed to upload README: {e}")
