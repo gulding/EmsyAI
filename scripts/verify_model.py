@@ -31,38 +31,27 @@ def verify_kv_cache():
         print(f"Generated token {i+1} -> Effective KV Cache sequence length: {start_pos}")
 
 def verify_causal_mask():
-    print("\n--- Verifying Causal Mask ---")
+    print("\n--- Verifying Causal Mask (Functional Test) ---")
     model = EmsyAIModel(vocab_size=100, dim=64, n_layers=1, n_heads=1, n_kv_heads=1, hidden_dim=128, max_seq_len=64)
     model.eval()
     
-    # We will hook into the softmax probabilities
-    attn_probs = []
+    # We test causality functionally: changing future tokens must NOT change past predictions.
+    tokens_base = torch.tensor([[10, 20, 30, 40]])
+    tokens_modified = torch.tensor([[10, 20, 30, 99]]) # Changed the last token
     
-    def hook_fn(module, input, output):
-        # The output of F.softmax inside attention. We don't have a direct hook for intermediate locals,
-        # but we can monkey-patch or just inspect the weights manually.
-        pass
+    with torch.no_grad():
+        logits_base, _ = model(tokens_base)
+        logits_modified, _ = model(tokens_modified)
         
-    # Since we can't easily hook a local variable, let's just trace or do a manual patch for the test
-    import emsyai.model.attention as attention_mod
-    original_softmax = F.softmax
+    # The prediction at position 2 (which predicts the token after '30') 
+    # should be mathematically identical in both runs, because it cannot "look ahead" at token 99.
+    diff = torch.abs(logits_base[0, 2] - logits_modified[0, 2]).max().item()
     
-    def mock_softmax(x, dim=-1):
-        probs = original_softmax(x, dim)
-        attn_probs.append(probs.detach())
-        return probs
-        
-    attention_mod.F.softmax = mock_softmax
-    
-    tokens = torch.randint(0, 100, (1, 4))
-    _ = model(tokens)
-    
-    attention_mod.F.softmax = original_softmax
-    
-    # Print the attention weights (B, NumHeads, SeqLen, SeqLen)
-    weights = attn_probs[0][0, 0]
-    print("Attention Weights Matrix (4x4 sequence):")
-    print(weights.tolist())
+    print(f"Max logit difference at position 2 (after altering position 3): {diff:.8f}")
+    if diff == 0.0:
+        print("✅ Causality Verified! Future tokens do not leak into the past.")
+    else:
+        print("❌ CAUSALITY LEAK DETECTED!")
 
 def verify_overfit():
     print("\n--- Overfitting Sanity Test (Gradient Check) ---")

@@ -21,14 +21,20 @@ def get_instruct_dataloader(tokenizer: BPETokenizer, batch_size: int = 4, seq_le
     # Format and tokenize
     tokenized_examples = []
     for item in data:
-        # We format as:
-        # [USER]
-        # Write a function...
-        # [MODEL]
-        # def function...<|eos|>
-        text = f"[USER]\n{item['instruction']}\n[MODEL]\n{item['output']}<|eos|>"
-        tokens = tokenizer.encode(text, allowed_special={"<|eos|>"})
-        tokenized_examples.append(tokens)
+        prompt_text = f"[USER]\n{item['instruction']}\n[MODEL]\n"
+        output_text = f"{item['output']}<|eos|>"
+        
+        prompt_tokens = tokenizer.encode(prompt_text, allowed_special=set())
+        output_tokens = tokenizer.encode(output_text, allowed_special={"<|eos|>"})
+        
+        # Input tokens
+        tokens = prompt_tokens + output_tokens
+        
+        # Labels: -100 for prompt tokens (so they don't contribute to loss), then the output tokens
+        # We use -100 because PyTorch CrossEntropyLoss ignores it by default.
+        labels = [-100] * len(prompt_tokens) + output_tokens
+        
+        tokenized_examples.append((tokens, labels))
         
     # Infinite generator yielding batches
     def batch_generator():
@@ -37,19 +43,23 @@ def get_instruct_dataloader(tokenizer: BPETokenizer, batch_size: int = 4, seq_le
             indices = torch.randint(0, len(tokenized_examples), (batch_size,))
             
             x_batch = torch.zeros((batch_size, seq_len), dtype=torch.long)
-            y_batch = torch.zeros((batch_size, seq_len), dtype=torch.long)
+            y_batch = torch.full((batch_size, seq_len), -100, dtype=torch.long) # Default to -100 for padding
             
             for i, idx in enumerate(indices.tolist()):
-                tokens = tokenized_examples[idx]
+                tokens, labels = tokenized_examples[idx]
+                
                 # Pad or truncate to seq_len + 1
                 if len(tokens) > seq_len + 1:
                     tokens = tokens[:seq_len + 1]
+                    labels = labels[:seq_len + 1]
                 else:
-                    # Pad with 0 (which is <|pad|> or we can just use eos)
-                    tokens = tokens + [0] * (seq_len + 1 - len(tokens))
+                    # Pad tokens with 0, labels with -100
+                    pad_len = seq_len + 1 - len(tokens)
+                    tokens = tokens + [0] * pad_len
+                    labels = labels + [-100] * pad_len
                     
                 x_batch[i] = torch.tensor(tokens[:-1], dtype=torch.long)
-                y_batch[i] = torch.tensor(tokens[1:], dtype=torch.long)
+                y_batch[i] = torch.tensor(labels[1:], dtype=torch.long)
                 
             yield x_batch, y_batch
             
@@ -64,17 +74,18 @@ def finetune():
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--seq_len", type=int, default=512)
     parser.add_argument("--lr", type=float, default=5e-4)
+    parser.add_argument("--version", type=str, default="v3", choices=["v2", "v3"], help="Model version architecture")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints_v3/model_step_5000.pt", help="Path to base model checkpoint")
     args = parser.parse_args()
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Starting LoRA Fine-tuning on {device}...")
     
     # 1. Load Base Model
-    checkpoint_path = "checkpoints_v2/model_step_5000.pt"
     tokenizer_path = "dataset/tokenizer_v2.json"
     
     print("Loading Base Model...")
-    model, tokenizer = load_model(checkpoint_path, tokenizer_path, device)
+    model, tokenizer = load_model(args.checkpoint, tokenizer_path, device, args.version)
     
     # 2. Freeze Base Model unconditionally
     for param in model.parameters():
@@ -94,7 +105,7 @@ def finetune():
     dataloader = get_instruct_dataloader(tokenizer, batch_size=args.batch_size, seq_len=args.seq_len)
     
     # 5. Training Loop
-    loss_fn = nn.CrossEntropyLoss(ignore_index=0)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
     
     print(f"\nStarting Training for {args.steps} steps...")
     
@@ -124,8 +135,8 @@ def finetune():
         
         # Save checkpoints periodically
         if step % 1000 == 0 or step == args.steps:
-            os.makedirs("checkpoints_v2/lora", exist_ok=True)
-            path = f"checkpoints_v2/lora/instruct_lora_step_{step}.pt"
+            os.makedirs("checkpoints_v3/lora", exist_ok=True)
+            path = f"checkpoints_v3/lora/instruct_lora_step_{step}.pt"
             lora_state_dict = {k: v for k, v in model.state_dict().items() if "lora_" in k}
             torch.save(lora_state_dict, path)
             print(f"\nSaved checkpoint to {path}")

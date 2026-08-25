@@ -66,7 +66,7 @@ Write a Python function to check if a number is prime.
 
 | Specification | EmsyAI-v2 (hosted here) | EmsyAI-v3 "Titan" (training, not yet published) |
 |---|---|---|
-| Parameters | 88.1M (tied embeddings) | 178.5M (tied embeddings) |
+| Parameters | 88.1M (tied embeddings) | 153.8M (tied embeddings) |
 | Layers | 12 | 16 |
 | Hidden dim | 768 | 896 |
 | Attention heads | 12 Query / 4 KV (GQA 3:1) | 14 Query / 2 KV (GQA 7:1) |

@@ -5,7 +5,9 @@ from emsyai.model.transformer import EmsyAIModel
 from emsyai.tokenizer import BPETokenizer
 from emsyai.model.generate import generate
 
-def load_model(checkpoint_path: str, tokenizer_path: str, device: str):
+from emsyai.config import V2_CONFIG, V3_CONFIG, ModelConfig
+
+def load_model(checkpoint_path: str, tokenizer_path: str, device: str, version: str = "v2"):
     print("Loading tokenizer...")
     tokenizer = BPETokenizer()
     tokenizer.load(tokenizer_path)
@@ -13,16 +15,9 @@ def load_model(checkpoint_path: str, tokenizer_path: str, device: str):
     print(f"Loading checkpoint from {checkpoint_path}...")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     
-    # We initialize the model with the exact same hyperparams used in training
-    model = EmsyAIModel(
-        vocab_size=16000, 
-        dim=768, 
-        n_layers=12, 
-        n_heads=12, 
-        n_kv_heads=4, 
-        hidden_dim=2048,
-        max_seq_len=1024
-    )
+    config = V3_CONFIG if version == "v3" else V2_CONFIG
+    print(f"Initializing {version.upper()} architecture...")
+    model = EmsyAIModel(**config.__dict__)
     
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device)
@@ -32,8 +27,9 @@ def load_model(checkpoint_path: str, tokenizer_path: str, device: str):
 
 def main():
     parser = argparse.ArgumentParser(description="EmsyAI Interactive Chat")
-    parser.add_argument("--checkpoint", type=str, default="checkpoints_v2/model_step_5000.pt", help="Path to model checkpoint")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints_v3/model_step_5000.pt", help="Path to model checkpoint")
     parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json", help="Path to tokenizer")
+    parser.add_argument("--version", type=str, default="v3", choices=["v2", "v3"], help="Model version architecture")
     parser.add_argument("--temperature", type=float, default=0.8, help="Generation temperature")
     parser.add_argument("--top_k", type=int, default=40, help="Top-K sampling")
     parser.add_argument("--top_p", type=float, default=0.9, help="Top-P (nucleus) sampling")
@@ -48,7 +44,7 @@ def main():
         print(f"Error: Checkpoint {args.checkpoint} not found. Run training first.")
         return
         
-    model, tokenizer = load_model(args.checkpoint, args.tokenizer, device)
+    model, tokenizer = load_model(args.checkpoint, args.tokenizer, device, args.version)
     
     print("\n" + "="*50)
     print(f"EmsyAI Chat REPL (Device: {device})")
