@@ -23,7 +23,7 @@ This is **not** a wrapper around the `transformers` library. **Every single comp
 
 | Specification | EmsyAI-v2 (Current) | EmsyAI-v3 Titan (Active) |
 |---|---|---|
-| **Parameters** | 88.1 Million (Tied) | 178.5 Million (Tied) |
+| **Parameters** | 88.1 Million (Tied) | 153.8 Million (Tied) |
 | **Layers ($L$)** | 12 | 16 |
 | **Hidden Dimension ($d_{\text{model}}$)** | 768 | 896 |
 | **Attention Heads ($H_q / H_{kv}$)** | 12 Query / 4 KV (GQA 3:1) | 14 Query / 2 KV (GQA 7:1) |
@@ -72,7 +72,7 @@ uv run python scripts/train_tokenizer.py
 # Pretrain EmsyAI-v2 (88M Model)
 uv run python -m emsyai.training.train
 
-# Pretrain EmsyAI-v3 Titan (180M Model @ 4,096 Context)
+# Pretrain EmsyAI-v3 Titan (154M Model @ 4,096 Context)
 uv run python -m emsyai.training.train_v3
 ```
 
@@ -87,10 +87,9 @@ uv run python -m emsyai.training.finetune --steps 10000
 
 ### 4. Interactive Chat REPL
 ```bash
-uv run python -m emsyai.chat_instruct \
-  --base_checkpoint checkpoints_v2/model_step_5000.pt \
-  --lora_checkpoint checkpoints_v2/lora/instruct_lora_step_10000.pt \
-  --tokenizer dataset/tokenizer_v2.json
+uv run python -m emsyai.chat \
+  --checkpoint checkpoints_v3/model_step_5000.pt \
+  --version v3
 ```
 
 ## 📝 Prompt Template
