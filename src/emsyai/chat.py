@@ -28,6 +28,7 @@ def load_model(checkpoint_path: str, tokenizer_path: str, device: str, version: 
 def main():
     parser = argparse.ArgumentParser(description="EmsyAI Interactive Chat")
     parser.add_argument("--checkpoint", type=str, default="checkpoints_v3/model_step_5000.pt", help="Path to model checkpoint")
+    parser.add_argument("--lora_checkpoint", type=str, default=None, help="Path to LoRA checkpoint")
     parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json", help="Path to tokenizer")
     parser.add_argument("--version", type=str, default="v3", choices=["v2", "v3"], help="Model version architecture")
     parser.add_argument("--temperature", type=float, default=0.8, help="Generation temperature")
@@ -45,6 +46,18 @@ def main():
         return
         
     model, tokenizer = load_model(args.checkpoint, args.tokenizer, device, args.version)
+    
+    if args.lora_checkpoint:
+        if not os.path.exists(args.lora_checkpoint):
+            print(f"Error: LoRA Checkpoint {args.lora_checkpoint} not found.")
+            return
+        from emsyai.model.lora import apply_lora
+        print(f"Loading LoRA from {args.lora_checkpoint}...")
+        apply_lora(model, rank=8, alpha=16.0)
+        lora_ckpt = torch.load(args.lora_checkpoint, map_location=device, weights_only=True)
+        model.load_state_dict(lora_ckpt, strict=False)
+        model.to(device)
+        print("LoRA weights merged!")
     
     print("\n" + "="*50)
     print(f"EmsyAI Chat REPL (Device: {device})")
