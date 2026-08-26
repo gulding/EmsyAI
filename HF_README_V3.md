@@ -97,3 +97,21 @@ MIT — see [LICENSE](https://github.com/gulding/EmsyAI/blob/main/LICENSE).
 ## Links
 - 💻 [Source code, training pipeline, and full docs](https://github.com/gulding/EmsyAI)
 - 💬 [Issues / discussions](https://github.com/gulding/EmsyAI/issues)
+
+
+Prompt loss masking successfully eliminated base-model "topic drift" (the model attempts to output Python blocks rather than continuing the prompt), but the underlying logic is still heavily limited by the 154M parameter count. 
+
+Here is a raw, unedited transcript from the model demonstrating its capabilities (and limitations):
+
+```python
+[USER]
+Write the function def is_prime(n):
+[MODEL]
+def is_prime(n):
+  if n <= 1:
+    return False
+
+ for i in range(2, int(n-1)+"):
+       print("Fizz")
+```
+*Note: As seen above, while the model attempts to generate Python, it frequently hallucinates syntax errors or drifts into unrelated coding topics (like FizzBuzz).*
