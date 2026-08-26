@@ -9,9 +9,10 @@ from emsyai.model.lora import apply_lora
 
 def main():
     parser = argparse.ArgumentParser(description="EmsyAI Instruct Chat (LoRA)")
-    parser.add_argument("--base_checkpoint", type=str, default="checkpoints_v2/model_step_5000.pt")
-    parser.add_argument("--lora_checkpoint", type=str, default="checkpoints_v2/lora/instruct_lora.pt")
+    parser.add_argument("--base_checkpoint", type=str, default="checkpoints_v3/model_step_5000.pt")
+    parser.add_argument("--lora_checkpoint", type=str, default="checkpoints_v3/lora/instruct_lora_step_10000.pt")
     parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json")
+    parser.add_argument("--version", type=str, default="v3", choices=["v2", "v3"], help="Model version architecture")
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_k", type=int, default=40)
     parser.add_argument("--top_p", type=float, default=0.9)
@@ -22,8 +23,8 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
     # 1. Load Base Model
-    print("Loading Base Model...")
-    model, tokenizer = load_model(args.base_checkpoint, args.tokenizer, device)
+    print(f"Loading Base Model ({args.version.upper()})...")
+    model, tokenizer = load_model(args.base_checkpoint, args.tokenizer, device, args.version)
     
     # 2. Inject LoRA Layers
     print("Injecting LoRA architecture...")
