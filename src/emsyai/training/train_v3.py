@@ -91,17 +91,9 @@ def main():
     tokenizer.load(tokenizer_path)
     
     # --- Model & Optimizer Initialization ---
-    print("Initializing EmsyAI-v3 Titan Model...")
-    model = EmsyAIModel(
-        vocab_size=16000, 
-        dim=896, 
-        n_layers=16, 
-        n_heads=14, 
-        n_kv_heads=2, 
-        hidden_dim=2560,
-        max_seq_len=4096,
-        rope_theta=50000.0
-    )
+    print("Initializing EmsyAI-v3 Titan Model from V3_CONFIG...")
+    from emsyai.config import V3_CONFIG
+    model = EmsyAIModel(**V3_CONFIG.__dict__)
     model.to(device)
     
     # Why Weight Decay?
