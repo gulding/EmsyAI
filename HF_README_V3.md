@@ -56,7 +56,7 @@ Write a Python function to check if a number is prime.
 | File | What it is | Do you need it? |
 |---|---|---|
 | `emsyai-v2-instruct-f32.gguf` | v2 base model + LoRA adapter, merged and exported to GGUF | **Yes.** This is what Ollama / llama.cpp actually run |
-| `base_model_120M_step_5000.pt` | Raw PyTorch inference weights | Only if loading it back into the [training code](https://github.com/gulding/EmsyAI) |
+| `base_model_154M_step_5000.pt` | Raw PyTorch inference weights | Only if loading it back into the [training code](https://github.com/gulding/EmsyAI) |
 | `tokenizer.json` | The trained 16k-vocab BPE tokenizer | Only needed for the PyTorch path, not GGUF |
 | `Modelfile` | Ollama configuration — prompt template, stop token, temperature | Used automatically by `ollama run` |
 
