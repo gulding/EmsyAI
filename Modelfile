@@ -1,4 +1,4 @@
-FROM ./emsyai-f32.gguf
+FROM ./emsyai-v3-titan-instruct-f32.gguf
 TEMPLATE """[USER]
 {{ .Prompt }}
 [MODEL]
