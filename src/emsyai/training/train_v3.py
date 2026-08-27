@@ -37,23 +37,6 @@ def get_lr(step: int, max_steps: int, warmup_steps: int, max_lr: float, min_lr: 
     return min_lr + coeff * (max_lr - min_lr)
 
 def main():
-    # --- Configuration ---
-    # File paths
-    text_path = "dataset/smollm_corpus_v2.txt"
-    tokenizer_path = "dataset/tokenizer_v2.json"
-    bin_path = "dataset/train_v2.bin"
-    checkpoint_dir = "checkpoints_v2"
-    os.makedirs(checkpoint_dir, exist_ok=True)
-    
-    # Model Hyperparameters (EmsyAI-120M)
-    vocab_size = 16000
-    dim = 768
-    n_layers = 12
-    n_heads = 12
-    n_kv_heads = 4
-    hidden_dim = 2048
-    seq_len = 4096
-    
     # Training Hyperparameters
     micro_batch_size = 1
     gradient_accumulation_steps = 32
@@ -84,7 +67,8 @@ def main():
     # --- Data Preparation ---
     # The dataset was built using data/download_v3.py
     # Data Loader
-    train_loader, val_loader = get_dataloaders(bin_path, seq_len=seq_len, batch_size=micro_batch_size)
+    from emsyai.config import V3_CONFIG
+    train_loader, val_loader = get_dataloaders(bin_path, seq_len=V3_CONFIG.seq_len, batch_size=micro_batch_size)
     train_iter = iter(train_loader)
     
     tokenizer = BPETokenizer()
@@ -173,7 +157,7 @@ def main():
             dt = t1 - t0
             t0 = t1
             # Tokens per second calculation
-            tokens_processed = micro_batch_size * seq_len * gradient_accumulation_steps
+            tokens_processed = micro_batch_size * V3_CONFIG.seq_len * gradient_accumulation_steps
             tok_sec = tokens_processed / dt
             
             if "cuda" in device:

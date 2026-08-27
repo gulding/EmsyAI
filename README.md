@@ -21,16 +21,16 @@ This is **not** a wrapper around the `transformers` library. **Every single comp
 
 ## 🏗️ Architecture Specifications
 
-| Specification | EmsyAI-v2 (Current) | EmsyAI-v3 Titan (Active) |
+| Specification | EmsyAI-v3 Titan | EmsyAI-v4 (Current Training) |
 |---|---|---|
-| **Parameters** | 88.1 Million (Tied) | 153.8 Million (Tied) |
-| **Layers ($L$)** | 12 | 16 |
-| **Hidden Dimension ($d_{\text{model}}$)** | 768 | 896 |
-| **Attention Heads ($H_q / H_{kv}$)** | 12 Query / 4 KV (GQA 3:1) | 14 Query / 2 KV (GQA 7:1) |
-| **FFN Dimension** | 2,048 (SwiGLU) | 2,560 (SwiGLU) |
-| **Context Window ($T$)** | 1,024 tokens | 4,096 tokens |
+| **Parameters** | 153.8 Million (Tied) | 196 Million (Tied) |
+| **Layers ($L$)** | 16 | 16 |
+| **Hidden Dimension ($d_{\text{model}}$)** | 896 | 1024 |
+| **Attention Heads ($H_q / H_{kv}$)** | 14 Query / 2 KV (GQA 7:1) | 16 Query / 4 KV (GQA 4:1) |
+| **FFN Dimension** | 2,560 (SwiGLU) | 2,816 (SwiGLU) |
+| **Context Window ($T$)** | 4,096 tokens | 4,096 tokens |
 | **Vocabulary Size** | 16,000 (Hybrid BPE) | 16,000 (Hybrid BPE) |
-| **Attention Backend** | FlashAttention-2 (`F.scaled_dot_product_attention`) | FlashAttention-2 |
+| **Attention Backend** | FlashAttention-2 | FlashAttention-2 (`is_causal=True`) |
 
 ---
 
@@ -55,25 +55,20 @@ cd EmsyAI
 uv sync
 ```
 
-### 1. Data Engine & Tokenizer
+### 1. Data Engine & Strict Decontamination
+EmsyAI-v4 is trained on a strictly verified, mathematically sterile dataset. We explicitly filter out exact 13-gram overlap sequences against standard coding benchmarks (e.g., HumanEval) at the token level during ingestion.
 ```bash
-# Stream 100k hybrid samples (Cosmopedia v2 + Python-25k)
-uv run python data/download_v2.py
+# Stream and decontaminate 500M tokens from Cosmopedia v2
+uv run python scripts/prepare_v4_data.py
 
-# Or stream the 150M Token Titan Dataset with Decontamination
-uv run python data/download_v3.py
-
-# Train the 16k BPE Tokenizer
-uv run python scripts/train_tokenizer.py
+# Verify the dataset is 100% sterile
+uv run python scripts/audit_contamination.py
 ```
 
 ### 2. Pretraining
 ```bash
-# Pretrain EmsyAI-v2 (88M Model)
-uv run python -m emsyai.training.train
-
-# Pretrain EmsyAI-v3 Titan (154M Model @ 4,096 Context)
-uv run python -m emsyai.training.train_v3
+# Pretrain EmsyAI-v4 (196M Model @ 4,096 Context)
+uv run python -m emsyai.training.train_v4
 ```
 
 ### 3. LoRA Instruction Fine-Tuning (SFT)
@@ -88,8 +83,8 @@ uv run python -m emsyai.training.finetune --steps 10000
 ### 4. Interactive Chat REPL
 ```bash
 uv run python -m emsyai.chat \
-  --checkpoint checkpoints_v3/model_step_5000.pt \
-  --version v3
+  --checkpoint checkpoints_v4/model_step_15000.pt \
+  --version v4
 ```
 
 ## 📝 Prompt Template

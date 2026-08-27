@@ -1,92 +1,122 @@
-import ast
+import os
 import torch
+import subprocess
+import tempfile
+import argparse
 from emsyai.chat import load_model
 from emsyai.model.generate import generate
 
-SIGNATURES = [
-    "def add(a, b):",
-    "def factorial(n):",
-    "def is_prime(n):",
-    "def reverse_string(s):",
-    "def get_even_numbers(lst):",
-    "class User:",
-    "def parse_json(data):",
-    "def connect_to_db(url):",
-    "def calculate_area(radius):",
-    "def find_max(numbers):",
-    "def sort_dictionary_by_value(d):",
-    "def flatten_list(nested_list):",
-    "def check_palindrome(s):",
-    "def fibonacci(n):",
-    "def merge_dicts(d1, d2):",
-    "class LinkedListNode:",
-    "def send_email(to, subject, body):",
-    "def count_words(text):",
-    "def binary_search(arr, target):",
-    "def random_password_generator(length):"
+# A mini "HumanEval" style test suite.
+# The model receives the 'prompt', and its generation is concatenated with 'test'
+TEST_CASES = [
+    {
+        "prompt": "def add(a, b):\n    \"\"\"Return the sum of a and b\"\"\"\n",
+        "test": "assert add(2, 3) == 5\nassert add(-1, 1) == 0\nprint('PASS')"
+    },
+    {
+        "prompt": "def is_prime(n):\n    \"\"\"Return True if n is prime, else False\"\"\"\n",
+        "test": "assert is_prime(2) == True\nassert is_prime(4) == False\nassert is_prime(17) == True\nassert is_prime(1) == False\nprint('PASS')"
+    },
+    {
+        "prompt": "def reverse_string(s):\n    \"\"\"Return the reversed string\"\"\"\n",
+        "test": "assert reverse_string('hello') == 'olleh'\nassert reverse_string('') == ''\nprint('PASS')"
+    },
+    {
+        "prompt": "def get_even_numbers(lst):\n    \"\"\"Return a list of only the even numbers\"\"\"\n",
+        "test": "assert get_even_numbers([1, 2, 3, 4, 5]) == [2, 4]\nassert get_even_numbers([1, 3, 5]) == []\nprint('PASS')"
+    },
+    {
+        "prompt": "def factorial(n):\n    \"\"\"Return the factorial of n (n >= 0)\"\"\"\n",
+        "test": "assert factorial(0) == 1\nassert factorial(5) == 120\nprint('PASS')"
+    }
 ]
 
-def check_syntax(code: str) -> bool:
+def execute_code(code_str: str, timeout: int = 3) -> bool:
     """
-    Attempts to parse the generated string into a Python Abstract Syntax Tree (AST).
-    If it parses without throwing a SyntaxError, the model generated valid Python syntax.
+    Saves the code to a temporary file and executes it via subprocess.
+    Returns True if the script exits with code 0 (all asserts passed).
     """
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(code_str)
+        temp_path = f.name
+
     try:
-        ast.parse(code)
-        return True
-    except SyntaxError:
-        return False
-    except Exception:
-        return False
+        # Run the temporary Python file in a sandbox
+        result = subprocess.run(
+            ["python", temp_path],
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+        passed = (result.returncode == 0)
+    except subprocess.TimeoutExpired:
+        passed = False
+    finally:
+        os.unlink(temp_path)
+        
+    return passed
 
 def run_benchmark():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    checkpoint = "checkpoints/model_step_5000.pt"
-    tokenizer_path = "dataset/tokenizer.json"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--checkpoint", type=str, default="checkpoints_v4/model_step_15000.pt")
+    parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json")
+    args = parser.parse_args()
     
-    print(f"Loading EmsyAI for benchmarking on {device}...")
-    model, tokenizer = load_model(checkpoint, tokenizer_path, device)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    if not os.path.exists(args.checkpoint):
+        print(f"Warning: Checkpoint {args.checkpoint} not found. Cannot run benchmark.")
+        return
+
+    print(f"Loading EmsyAI for Functional Benchmarking on {device}...")
+    model, tokenizer = load_model(args.checkpoint, args.tokenizer, device, version="v4")
     
     valid_count = 0
-    total = len(SIGNATURES)
+    total = len(TEST_CASES)
     
-    print("\n" + "="*50)
-    print("Starting Syntax Benchmark")
-    print("="*50)
+    print("\n" + "="*60)
+    print("Starting Execution-Based Benchmark (pass@1)")
+    print("="*60)
     
-    for i, sig in enumerate(SIGNATURES):
-        print(f"\n[{i+1}/{total}] Prompt: {sig}")
+    for i, test_case in enumerate(TEST_CASES):
+        prompt_text = test_case["prompt"]
+        print(f"\n[{i+1}/{total}] Testing: {prompt_text.strip().split('(')[0]}")
         
-        # We use a low temperature to make the model more deterministic and grammar-focused
+        # Format the prompt exactly how the model expects it
+        formatted_prompt = f"[USER]\nWrite the function:\n{prompt_text}\n[MODEL]\n{prompt_text}"
+        
         output = generate(
             model=model,
             tokenizer=tokenizer,
-            prompt=sig + "\n",
-            max_new_tokens=50,
-            temperature=0.3,
+            prompt=formatted_prompt,
+            max_new_tokens=100,
+            temperature=0.2, # Low temp for coding tasks
             device=device
         )
         
-        # Check syntax
-        is_valid = check_syntax(output)
+        # Extract just the model's generated portion
+        generated_code = output[len(formatted_prompt):].split("[USER]")[0].strip()
+        
+        # Combine the original prompt (def signature), the generated code, and the test assertions
+        full_program = f"{prompt_text}\n{generated_code}\n\n# --- TESTS ---\n{test_case['test']}"
+        
+        # Execute it
+        is_valid = execute_code(full_program)
+        
         if is_valid:
             valid_count += 1
-            print("Status: [PASS] Valid Python Syntax")
+            print("Status: [PASS] Code compiled and passed all assertions.")
         else:
-            print("Status: [FAIL] Syntax Error")
+            print("Status: [FAIL] Code failed assertions, syntax error, or timed out.")
+            print("--- Generated Code That Failed ---")
+            print(generated_code)
+            print("----------------------------------")
             
-        print("Generated Code:")
-        print("-" * 40)
-        print(output)
-        print("-" * 40)
-        
     score = (valid_count / total) * 100
     
-    print("\n" + "="*50)
-    print("Benchmark Results")
-    print("="*50)
-    print(f"Syntax Pass Rate: {valid_count}/{total} ({score:.1f}%)")
-    print("\nNote: A passing score only means the code compiles in Python, not that the logic is correct!")
+    print("\n" + "="*60)
+    print(f"Benchmark Results: Functional pass@1 Rate: {valid_count}/{total} ({score:.1f}%)")
+    print("="*60)
 
 if __name__ == "__main__":
     run_benchmark()

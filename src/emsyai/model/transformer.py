@@ -100,6 +100,23 @@ class EmsyAIModel(nn.Module):
         # Precompute RoPE frequencies
         self.freqs_cis = precompute_freqs_cis(dim // n_heads, max_seq_len * 2, theta=rope_theta)
 
+        # Apply NanoGPT initialization
+        self.apply(self._init_weights)
+
+        # Scale residual projections specifically
+        import math
+        for layer in self.layers:
+            torch.nn.init.normal_(layer.attention.wo.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.n_layers))
+            torch.nn.init.normal_(layer.feed_forward.w2.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.n_layers))
+
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
     def forward(
         self, 
         tokens: torch.Tensor, 
@@ -115,17 +132,14 @@ class EmsyAIModel(nn.Module):
         freqs_cis = self.freqs_cis[start_pos : start_pos + SeqLen].to(h.device)
         
         # Causal Mask Generation
-        # We only need a mask during training (SeqLen > 1).
-        # During single-token autoregressive generation, SeqLen == 1 and no mask is needed.
+        # For training (start_pos == 0), we can just leave mask=None.
+        # scaled_dot_product_attention will automatically use its highly optimized 
+        # FlashAttention-2 causal kernel if we pass mask=None and is_causal=True.
         mask = None
-        if SeqLen > 1:
-            # Create a matrix of -infinity above the diagonal, and 0 on/below the diagonal.
-            # This ensures token i can only attend to tokens <= i (it can't see the future).
+        if SeqLen > 1 and start_pos > 0:
+            # We only need a custom mask if we are doing chunked generation with a KV cache
             mask = torch.full((SeqLen, SeqLen), float("-inf"), device=h.device)
             mask = torch.triu(mask, diagonal=1)
-            # Reshape for broadcasting with Attention scores: (B, NumHeads, SeqLen, SeqLen)
-            # But wait, if start_pos > 0 (KV cache generation with chunks), mask needs to accommodate the cached tokens.
-            # Usually mask is just (SeqLen, SeqLen + start_pos).
             mask = torch.hstack([torch.zeros((SeqLen, start_pos), device=h.device), mask])
             mask = mask.view(1, 1, SeqLen, SeqLen + start_pos)
 

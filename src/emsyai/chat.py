@@ -5,7 +5,7 @@ from emsyai.model.transformer import EmsyAIModel
 from emsyai.tokenizer import BPETokenizer
 from emsyai.model.generate import generate
 
-from emsyai.config import V2_CONFIG, V3_CONFIG, ModelConfig
+from emsyai.config import V2_CONFIG, V3_CONFIG, V4_CONFIG, ModelConfig
 
 def load_model(checkpoint_path: str, tokenizer_path: str, device: str, version: str = "v2"):
     print("Loading tokenizer...")
@@ -15,7 +15,13 @@ def load_model(checkpoint_path: str, tokenizer_path: str, device: str, version: 
     print(f"Loading checkpoint from {checkpoint_path}...")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     
-    config = V3_CONFIG if version == "v3" else V2_CONFIG
+    if version == "v4":
+        config = V4_CONFIG
+    elif version == "v3":
+        config = V3_CONFIG
+    else:
+        config = V2_CONFIG
+        
     print(f"Initializing {version.upper()} architecture...")
     model = EmsyAIModel(**config.__dict__)
     
@@ -30,7 +36,7 @@ def main():
     parser.add_argument("--checkpoint", type=str, default="checkpoints_v3/model_step_5000.pt", help="Path to model checkpoint")
     parser.add_argument("--lora_checkpoint", type=str, default=None, help="Path to LoRA checkpoint")
     parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json", help="Path to tokenizer")
-    parser.add_argument("--version", type=str, default="v3", choices=["v2", "v3"], help="Model version architecture")
+    parser.add_argument("--version", type=str, default="v4", choices=["v2", "v3", "v4"], help="Model version architecture")
     parser.add_argument("--temperature", type=float, default=0.8, help="Generation temperature")
     parser.add_argument("--top_k", type=int, default=40, help="Top-K sampling")
     parser.add_argument("--top_p", type=float, default=0.9, help="Top-P (nucleus) sampling")
