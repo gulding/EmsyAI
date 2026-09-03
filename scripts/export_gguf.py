@@ -43,7 +43,18 @@ def export_to_gguf(merged_state, tokenizer_path, out_file, version):
     print(f"Exporting {version} to GGUF...")
     writer = GGUFWriter(out_file, "llama")
     
-    if version == "v3":
+    if version == "v4":
+        writer.add_name("EmsyAI-v4-Instruct")
+        writer.add_context_length(4096)
+        writer.add_embedding_length(1024)
+        writer.add_block_count(16)
+        writer.add_feed_forward_length(2816)
+        writer.add_rope_dimension_count(64)
+        writer.add_head_count(16)
+        writer.add_head_count_kv(4)
+        writer.add_layer_norm_rms_eps(1e-5)
+        num_layers = 16
+    elif version == "v3":
         writer.add_name("EmsyAI-v3-Titan-Instruct")
         writer.add_context_length(4096)
         writer.add_embedding_length(896)
@@ -148,11 +159,11 @@ def export_to_gguf(merged_state, tokenizer_path, out_file, version):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base", type=str, default="checkpoints_v3/model_step_5000.pt")
-    parser.add_argument("--lora", type=str, default="checkpoints_v3/lora/instruct_lora_step_10000.pt")
+    parser.add_argument("--base", type=str, default="checkpoints_v4/model_step_15000.pt")
+    parser.add_argument("--lora", type=str, default="checkpoints_v4/lora/instruct_lora_step_10000.pt")
     parser.add_argument("--tokenizer", type=str, default="dataset/tokenizer_v2.json")
-    parser.add_argument("--out", type=str, default="emsyai-v3-titan-instruct-f32.gguf")
-    parser.add_argument("--version", type=str, default="v3")
+    parser.add_argument("--out", type=str, default="emsyai-v4-instruct-f32.gguf")
+    parser.add_argument("--version", type=str, default="v4")
     args = parser.parse_args()
     
     if not os.path.exists(args.base) or not os.path.exists(args.lora):

@@ -49,9 +49,9 @@ def verify_causal_mask():
     
     print(f"Max logit difference at position 2 (after altering position 3): {diff:.8f}")
     if diff == 0.0:
-        print("✅ Causality Verified! Future tokens do not leak into the past.")
+        print("[OK] Causality Verified! Future tokens do not leak into the past.")
     else:
-        print("❌ CAUSALITY LEAK DETECTED!")
+        print("[FAIL] CAUSALITY LEAK DETECTED!")
 
 def verify_overfit():
     print("\n--- Overfitting Sanity Test (Gradient Check) ---")
@@ -82,7 +82,32 @@ def verify_overfit():
         if i % 20 == 0:
             print(f"Step {i}: loss={loss.item():.4f}")
 
+def verify_tokenizer_roundtrip():
+    print("\n--- Verifying Tokenizer Roundtrip ---")
+    from emsyai.tokenizer import BPETokenizer
+    tokenizer = BPETokenizer()
+    tokenizer.load("dataset/tokenizer_v2.json")
+    
+    test_cases = [
+        "def calculate_fibonacci(n):",
+        "Hello, World!",
+        "\n\t  Whitespace   and control chars\n",
+        "<|bos|> A sentence with <|eos|> special tokens embedded <|unk|>",
+        "An extremely obscure emoji byte sequence"
+    ]
+    
+    for text in test_cases:
+        ids = tokenizer.encode(text, allowed_special={"<|bos|>", "<|eos|>", "<|unk|>", "<|pad|>"})
+        decoded = tokenizer.decode(ids)
+        if text != decoded:
+            print(f"[FAIL] ROUNDTRIP FAILED!")
+            print(f"Original: {text!r}")
+            print(f"Decoded:  {decoded!r}")
+        else:
+            print(f"Roundtrip OK: {text!r}")
+
 if __name__ == "__main__":
+    verify_tokenizer_roundtrip()
     verify_kv_cache()
     verify_causal_mask()
     verify_overfit()
