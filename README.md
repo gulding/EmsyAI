@@ -1,18 +1,3 @@
----
-license: mit
-pipeline_tag: text-generation
-language:
-- en
-tags:
-- gguf
-- llama.cpp
-- ollama
-- from-scratch
-- educational
-- pytorch
-- lora
----
-
 # EmsyAI (V4)
 
 [![Hugging Face Model](https://img.shields.io/badge/🤗%20Hugging%20Face-EmsyAI--V4-yellow)](https://huggingface.co/gulding/EmsyAI)

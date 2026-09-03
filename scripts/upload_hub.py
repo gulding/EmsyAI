@@ -11,13 +11,37 @@ def upload_all(api: HfApi, repo_id: str):
 def upload_readme(api: HfApi, repo_id: str):
     print("Uploading README and images...")
     try:
+        # Dynamically inject the YAML frontmatter for Hugging Face
+        yaml_frontmatter = """---
+license: mit
+pipeline_tag: text-generation
+language:
+- en
+tags:
+- gguf
+- llama.cpp
+- ollama
+- from-scratch
+- educational
+- pytorch
+- lora
+---
+
+"""
+        with open("README.md", "r", encoding="utf-8") as f:
+            readme_content = f.read()
+            
+        with open(".HF_README_TEMP.md", "w", encoding="utf-8") as f:
+            f.write(yaml_frontmatter + readme_content)
+
         api.upload_file(
-            path_or_fileobj="README.md",
+            path_or_fileobj=".HF_README_TEMP.md",
             path_in_repo="README.md",
             repo_id=repo_id,
             repo_type="model",
             commit_message="Update V4 Model Card"
         )
+        os.remove(".HF_README_TEMP.md")
         print("README.md uploaded successfully.")
         
         # Upload the training curve so it renders in the README on HF
