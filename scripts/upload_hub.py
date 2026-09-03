@@ -31,7 +31,9 @@ tags:
         with open("README.md", "r", encoding="utf-8") as f:
             readme_content = f.read()
             
-        with open(".HF_README_TEMP.md", "w", encoding="utf-8") as f:
+        # HuggingFace YAML parser breaks on Windows CRLF line endings.
+        # We MUST enforce newline='\n' so it saves as pure LF.
+        with open(".HF_README_TEMP.md", "w", encoding="utf-8", newline='\n') as f:
             f.write(yaml_frontmatter + readme_content)
 
         api.upload_file(
@@ -39,7 +41,7 @@ tags:
             path_in_repo="README.md",
             repo_id=repo_id,
             repo_type="model",
-            commit_message="Update V4 Model Card"
+            commit_message="Fix YAML CRLF issue"
         )
         os.remove(".HF_README_TEMP.md")
         print("README.md uploaded successfully.")
