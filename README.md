@@ -1,13 +1,16 @@
 ---
 license: mit
 pipeline_tag: text-generation
+language:
+- en
 tags:
-  - pytorch
-  - emsyai
-  - custom-architecture
-  - pretraining
-  - lora
-  - ollama
+- gguf
+- llama.cpp
+- ollama
+- from-scratch
+- educational
+- pytorch
+- lora
 ---
 
 # EmsyAI (V4)
