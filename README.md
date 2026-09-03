@@ -3,6 +3,8 @@
 [![Hugging Face Model](https://img.shields.io/badge/🤗%20Hugging%20Face-EmsyAI--V4-yellow)](https://huggingface.co/gulding/EmsyAI)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+![gguf](https://img.shields.io/badge/gguf-lightgrey) ![llama.cpp](https://img.shields.io/badge/llama.cpp-lightgrey) ![ollama](https://img.shields.io/badge/ollama-lightgrey) ![pytorch](https://img.shields.io/badge/pytorch-lightgrey) ![lora](https://img.shields.io/badge/lora-lightgrey) ![from-scratch](https://img.shields.io/badge/from--scratch-lightgrey) ![educational](https://img.shields.io/badge/educational-lightgrey)
+
 EmsyAI is a 196M parameter language model I built from scratch to learn how LLMs actually work under the hood. 
 
 Instead of just fine-tuning an existing model, I wanted to handle the entire pipeline locally: writing a custom BPE tokenizer, building a Llama-style transformer in PyTorch, pretraining it on 2 billion tokens, applying LoRA instruction tuning, and exporting it to GGUF so it runs natively in Ollama.
