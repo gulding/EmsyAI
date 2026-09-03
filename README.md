@@ -95,6 +95,3 @@ Building this taught me a lot about transformer stability. Here is what I'm fixi
 2. **Document-Aware Packing:** Currently, the tokenizer blindly concatenates text. V5 will respect document boundaries to prevent cross-document attention poisoning.
 3. **Tokenizer Byte Collisions:** I realized late in training that bytes 0-3 currently overlap with special tokens. I'll be rebuilding the tokenizer from scratch and expanding the vocab to 32K.
 4. **RoPE Scaling:** Lowering `head_dim` to 64 and adjusting `rope_theta` to 500,000 to better balance high/low frequency positional data at 4096 context.
-
----
-*Built with ❤️ in pure PyTorch.*
